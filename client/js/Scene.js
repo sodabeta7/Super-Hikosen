@@ -1,0 +1,1 @@
+var Scene;Scene=function(){function Scene(){this.users={};this.user=null;this.camera=null;this.rocks=[];this.enemies=[]}return Scene}();

@@ -1,0 +1,131 @@
+class App
+  
+  constructor:(@canvas,@bullet_canvas)->
+    @context=@canvas.getContext('2d')
+    @bullet_context=@bullet_canvas.getContext('2d')
+    @resizeCvs()    
+    @scene=new Scene()
+    @scene.user=new Player(-1)
+    @scene.users[-1]=@scene.user    
+    @socket=io()
+    init_socket(@socket,@scene)
+    for i in [1..150]
+      @scene.rocks.push(new Rock())
+    @scene.camera=new Camera(@canvas,@context,@scene.user.x,@scene.user.y)
+    @scene.arrows={}    
+    @mouse=x:0,y:0,worldx:0,worldy:0,player:null
+    @key_nav=x:0,y:0
+    @scene.game_state=App.GAME_STATUS.GAME_START
+    @health_bar=new HealthBar(@canvas.width-300,10)
+
+  update:()=>
+    return if not @ingame()
+    if @key_nav.x!=0 or @key_nav.y!=0
+      @scene.user.userUpdate(@scene.user.x+@key_nav.x,@scene.user.y+@key_nav.y)
+    else
+      mouse_p=@getMouseWorldPosition()
+      @mouse.worldx=mouse_p.x
+      @mouse.worldy=mouse_p.y
+      @scene.user.userUpdate(@mouse.worldx,@mouse.worldy)
+    if @scene.user.age%6==0 and @scene.user.changed>1 and @socket.in_connection
+      @scene.user.changed=0
+      sendUpdate(@scene.user)
+    @scene.camera.update(@scene)
+
+    # player.update(@mouse) for id,player of @scene.users
+    # console.log("update "+user.id+" "+user.x + " " + user.y) for i,user of @scene.users when i!=@scene.user.id and i!=-1
+    @scene.user.update(@mouse)
+    for rock in @scene.rocks
+      rock.update(@scene.camera.getOuterBounds(),@scene.camera.zoom)
+    arrow.update() for i,arrow of @scene.arrows
+    return
+
+  draw:()=>
+    @scene.camera.setupContext()
+    @bullet_context.bgcolor__=@scene.camera.bgcolor
+    rock.draw(@context) for rock in @scene.rocks
+    user.draw(@context,@scene.camera.getOuterBounds(),@context) for i,user of @scene.users
+    e.draw(@context,@scene.camera.getOuterBounds(),@context) for i,e of @scene.enemies
+    # console.log("draw "+user.id+" "+user.bullet_pool.used_pool.length) for i,user of @scene.users when i!=@scene.user.id and i!=-1
+    @scene.camera.startUILayer()
+    arrow.draw(@context,@canvas) for i,arrow of @scene.arrows
+    @health_bar.draw(@context,@scene.user.health,@scene.camera.bgcolor)
+    return 
+
+  sync:()=>
+    return if @scene.user.id==-1 or not @ingame()
+    # console.log('sync '+@scene.user.id+" "+@scene.user.x+" "+@scene.user.y)
+    @socket.emit('update',@scene.user)
+
+  mousedown:(e)=>
+    @mouse.clicking=true
+    if @mouse.player and @mouse.player.hover and @mouse.player.onclick(e)
+      return
+    if @scene.user and e.which==1
+      @scene.user.momentum=@scene.user.target_momentum=@scene.user.max_momentum
+
+  mouseup:(e)=>
+    if @scene.user and e.which==1
+      @scene.user.target_momentum=0
+
+  mousemove:(e)=>
+    @mouse.x=e.clientX
+    @mouse.y=e.clientY
+
+  keydown:(e)=>
+    switch e.keyCode
+      when keys.up
+        @key_nav.y=-1
+        @set_maxmometum(@scene.user)
+      when keys.down        
+        @key_nav.y=1
+        @set_maxmometum(@scene.user)
+      when keys.left
+        @key_nav.x=-1
+        @set_maxmometum(@scene.user)
+      when keys.right
+        @key_nav.x=1
+        @set_maxmometum(@scene.user)
+      when keys.space
+        @scene.user.shoot()
+      else console.log('keydown error!')
+    e.preventDefault()
+
+  keyup:(e)=>
+    switch e.keyCode
+      when keys.up,keys.down        
+        @key_nav.y=0
+      when keys.left,keys.right
+        @key_nav.x=0                
+    if @key_nav.x==0 and @key_nav.y==0
+      @scene.user.target_momentum=0
+    e.preventDefault()
+
+  touchstart:(e)=>
+
+  touchend:(e)=>
+
+  touchmove:(e)=>
+
+  resize:(e)=>@resizeCvs()
+
+  getMouseWorldPosition:()=>
+    res=
+      x:(@mouse.x+(@scene.camera.x*@scene.camera.zoom-@canvas.width/2))/@scene.camera.zoom
+      y:(@mouse.y+(@scene.camera.y*@scene.camera.zoom-@canvas.height/2))/@scene.camera.zoom
+
+  resizeCvs:()=>
+    @canvas.width=window.innerWidth
+    @canvas.height=window.innerHeight
+    @bullet_canvas.width=window.innerWidth
+    @bullet_canvas.height=window.innerHeight
+
+  set_maxmometum:(p)=>
+    p.momentum=p.target_momentum=p.max_momentum
+
+  ingame:()=>
+    return @scene.game_state!=App.GAME_STATUS.GAME_LOSE
+
+  @GAME_STATUS:
+    GAME_START:0
+    GAME_LOSE:1

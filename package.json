@@ -1,0 +1,14 @@
+{
+  "name": "bs_prj",
+  "version": "1.0.0",
+  "description": "A Course Project for B/S Programming",
+  "main": "server/server.js",
+  "author": "Ruixiang ZHANG",
+  "dependencies": {
+    "bootstrap": "^3.3.5",
+    "express": "^4.12.4",
+    "mongodb": "^2.0.35",
+    "mongoose": "^4.0.6",
+    "socket.io": "^1.3.5"
+  }
+}

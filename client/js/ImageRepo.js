@@ -1,0 +1,1 @@
+var ImageRepo,image_repo;ImageRepo=function(){function ImageRepo(){this.bullet={width:2,height:7};this.user_ship=new Image;this.user_ship.src="imgs/ship.png";this.enemy_ship=new Image;this.enemy_ship.src="imgs/enemy.png"}return ImageRepo}();image_repo=new ImageRepo;

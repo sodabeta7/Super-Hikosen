@@ -1,0 +1,1 @@
+var A,a;A=function(){A.x={x:1,y:2};function A(){this.x=A.x.x;this.y=1}return A}();a=new A;console.log(a.y);console.log(a.x);
